@@ -1,73 +1,90 @@
-// Game variables
-let player, bullets = [], enemies = [], bg, bg2;
+// ================= GAME STATE =================
+let gameState = "start"; // "start", "play", "gameover"
+
+// ================= GAME VARIABLES =================
+let player, bullets = [], enemies = [], explosions = [];
+let bg, bg2;
 let score = 0, level = 1, startTime;
 let enemyImages = [], rocketImg;
-let health = 3; // Player health (3 hearts)
-let shootSound; // Variable for bullet sound
+let health = 3;
+let shootSound;
 
-// Load assets before game starts
+// ================= PRELOAD =================
+// Load images and sound before game starts
 function preload() {
-    bg = loadImage("images/canvas.webp"); // Background image for level 1
-    bg2 = loadImage("images/canvas2.webp"); // Background image for level 2
-    rocketImg = loadImage("images/rocket.png"); // Rocket image
+    bg = loadImage("images/canvas.webp"); // Level 1 background
+    bg2 = loadImage("images/canvas2.webp"); // Level 2 background
+    rocketImg = loadImage("images/rocket.png"); // Player rocket
 
     // Load enemy images
     for (let i = 1; i <= 5; i++) {
         enemyImages.push(loadImage(`images/enemy${i}.png`));
     }
 
-    // Load bullet sound
-    shootSound = loadSound("sounds/bulletsound.mp3"); // Add your bullet sound file here
+    // Load shooting sound
+    shootSound = loadSound("sounds/bulletsound.mp3");
 }
 
-// Setup the game environment
+// ================= SETUP =================
 function setup() {
-    createCanvas(windowWidth, windowHeight); // Fullscreen canvas
-    player = new Player(); // Create player object
-    startTime = millis(); // Start timer for level tracking
+    createCanvas(windowWidth, windowHeight);
+    player = new Player();
+    startTime = millis();
 }
 
-// Main game loop
+// ================= MAIN LOOP =================
 function draw() {
-    // Switch background based on level
-    if (level === 1) {
-        background(bg); // Display level 1 background
-    } else if (level === 2) {
-        background(bg2); // Display level 2 background
+
+    // Start screen
+    if (gameState === "start") {
+        displayStartScreen();
+        return;
     }
+
+    // Game over screen
+    if (gameState === "gameover") {
+        displayGameOverScreen();
+        return;
+    }
+
+    // Game running
+    background(level === 1 ? bg : bg2);
 
     player.show();
     player.move();
 
     handleBullets();
     handleEnemies();
+    handleExplosions();
     checkCollisions();
 
     displayScore();
-    checkLevelProgress();
     displayHealth();
+    checkLevelProgress();
 }
 
-// Player class (rocket spaceship)
+// ================= PLAYER =================
 class Player {
     constructor() {
-        this.x = width / 2; // Start in the middle
-        this.y = height - 80; // Place near bottom
+        this.x = width / 2;
+        this.y = height - 80;
         this.width = 50;
         this.height = 50;
     }
 
+    // Draw player
     show() {
-        image(rocketImg, this.x, this.y, this.width, this.height); // Draw rocket image
+        image(rocketImg, this.x, this.y, this.width, this.height);
     }
 
+    // Move left/right
     move() {
         if (keyIsDown(LEFT_ARROW) && this.x > 0) this.x -= 5;
         if (keyIsDown(RIGHT_ARROW) && this.x < width - this.width) this.x += 5;
     }
 }
 
-// Bullet class (fired from player)
+// ================= BULLET =================
 class Bullet {
     constructor(x, y) {
         this.x = x;
@@ -79,7 +96,7 @@ class Bullet {
 
     show() {
         fill("red");
-        rect(this.x, this.y, this.width, this.height); // Bullets are red rectangles
+        rect(this.x, this.y, this.width, this.height);
     }
 
     move() {
@@ -87,20 +104,23 @@ class Bullet {
     }
 }
 
-// Enemy class
+// ================= ENEMY =================
 class Enemy {
     constructor() {
         this.x = random(50, width - 50);
         this.y = -50;
         this.width = 50;
         this.height = 50;
-        this.speed = level === 1 ? 2 : 4; // Faster in level 2
-        this.type = floor(random(0, 5)); // Random enemy type (0-4)
-        this.scoreValue = (this.type + 1) * 10; // Points based on type
+
+        // Faster enemies in level 2
+        this.speed = level === 1 ? 2 : 4;
+
+        this.type = floor(random(0, 5));
+        this.scoreValue = (this.type + 1) * 10;
     }
 
     show() {
-        image(enemyImages[this.type], this.x, this.y, this.width, this.height); // Display enemy image
+        image(enemyImages[this.type], this.x, this.y, this.width, this.height);
     }
 
     move() {
@@ -108,21 +128,43 @@ class Enemy {
     }
 }
 
-// Handle bullets
+// ================= EXPLOSION =================
+class Explosion {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 10;
+        this.alpha = 255;
+    }
+
+    // Expand and fade
+    update() {
+        this.size += 2;
+        this.alpha -= 10;
+    }
+
+    show() {
+        noStroke();
+        fill(255, 150, 0, this.alpha);
+        ellipse(this.x, this.y, this.size);
+    }
+}
+
+// ================= BULLETS =================
 function handleBullets() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].move();
         bullets[i].show();
 
         if (bullets[i].y < 0) {
-            bullets.splice(i, 1); // Remove bullets that go off screen
+            bullets.splice(i, 1);
         }
     }
 }
 
-// Enemy spawning and movement
+// ================= ENEMIES =================
 let lastEnemySpawn = 0;
-const enemySpawnDelay = 1000; // 1 second between spawns
+const enemySpawnDelay = 1000;
 
 function handleEnemies() {
     if (millis() - lastEnemySpawn > enemySpawnDelay) {
@@ -135,103 +177,161 @@ function handleEnemies() {
         enemies[i].show();
 
         if (enemies[i].y > height) {
-            enemies.splice(i, 1); // Remove enemies that go off screen
+            enemies.splice(i, 1);
         }
     }
 }
 
-// Collision detection between bullets and enemies
+// ================= EXPLOSIONS =================
+function handleExplosions() {
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        explosions[i].update();
+        explosions[i].show();
+
+        if (explosions[i].alpha <= 0) {
+            explosions.splice(i, 1);
+        }
+    }
+}
+
+// ================= COLLISIONS =================
 function checkCollisions() {
+
+    // Bullet hits enemy
     for (let i = bullets.length - 1; i >= 0; i--) {
         for (let j = enemies.length - 1; j >= 0; j--) {
+
             if (collideRectRect(
                 bullets[i].x, bullets[i].y, bullets[i].width, bullets[i].height,
-                enemies[j].x, enemies[j].y, enemies[j].width, enemies[j].height)) 
-            {
-                score += enemies[j].scoreValue; // Increase score
-                bullets.splice(i, 1); // Remove bullet
-                enemies.splice(j, 1); // Remove enemy
-                break; // Prevent out-of-bounds error
+                enemies[j].x, enemies[j].y, enemies[j].width, enemies[j].height
+            )) {
+                score += enemies[j].scoreValue;
+
+                // Create explosion effect
+                explosions.push(new Explosion(enemies[j].x, enemies[j].y));
+
+                bullets.splice(i, 1);
+                enemies.splice(j, 1);
+                break;
             }
         }
     }
 
-    // Check if enemy hits player (collides with rocket)
+    // Enemy hits player
     for (let i = enemies.length - 1; i >= 0; i--) {
         if (collideRectRect(
             player.x, player.y, player.width, player.height,
-            enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height)) 
-        {
-            health -= 1; // Decrease health on collision
-            enemies.splice(i, 1); // Remove enemy
+            enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height
+        )) {
+            health--;
+            enemies.splice(i, 1);
+
             if (health <= 0) {
-                gameOver(); // Game over if health reaches 0
+                gameOver();
             }
-            break; // Prevent multiple hits
+
+            break;
         }
     }
 }
 
-// Function for shooting bullets
+// ================= SHOOTING =================
 let lastShot = 0;
-const shotDelay = 300; // 0.3 seconds between shots
+const shotDelay = 300;
 
 function keyPressed() {
-    if (keyCode === 32) { // Spacebar to shoot
+
+    // Start game
+    if (gameState === "start" && keyCode === 32) {
+        gameState = "play";
+        return;
+    }
+
+    // Shoot bullet
+    if (gameState === "play" && keyCode === 32) {
         if (millis() - lastShot > shotDelay) {
             bullets.push(new Bullet(player.x + player.width / 2 - 2.5, player.y));
             lastShot = millis();
-            shootSound.play(); // Play bullet sound
+
+            if (shootSound && shootSound.isLoaded()) {
+                shootSound.play();
+            }
         }
     }
 }
+
+// ================= UI =================
 
 // Display score and level
 function displayScore() {
     fill("white");
-    textSize(24);
+
+    // Animated score text
+    textSize(24 + sin(frameCount * 0.1) * 2);
+
     text(`Score: ${score}`, 20, 30);
     text(`Level: ${level}`, 20, 60);
 }
 
-// Display health (hearts)
+// Display health
 function displayHealth() {
-    fill("white");
     textSize(24);
     for (let i = 0; i < health; i++) {
-        text("❤️", 20 + i * 30, 90); // Draw hearts for health
+        text("❤️", 20 + i * 30, 90);
     }
 }
 
-// Level progression system
+// ================= LEVEL SYSTEM =================
 function checkLevelProgress() {
-    let elapsedTime = (millis() - startTime) / 1000;
+    let time = (millis() - startTime) / 1000;
 
     if (level === 1 && score >= 300) {
-        if (elapsedTime < 10) alert("🌟🌟🌟 3 Stars! Level 2 Starts");
-        else if (elapsedTime < 20) alert("🌟🌟 2 Stars! Level 2 Starts");
-        else if (elapsedTime < 30) alert("🌟 1 Star! Level 2 Starts");
-        else alert("💀 Game Over!");
-
         level = 2;
         score = 0;
         startTime = millis();
     }
 
-    // Check if player failed to reach 300 points within 30 seconds
-    if (level === 1 && elapsedTime >= 30 && score < 300) {
-        alert("💀 Game Over!");
-        level = 2; // Switch to game over state or reset game
+    if (level === 1 && time > 30 && score < 300) {
+        gameOver();
     }
 }
 
-// Game over function
-function gameOver() {
-    alert("💀 Game Over!");
-    noLoop(); // Stop the game loop
+// ================= SCREENS =================
+
+// Start screen
+function displayStartScreen() {
+    background(0);
+    fill("white");
+    textAlign(CENTER);
+    textSize(50);
+    text("GALAXY ATTACK", width / 2, height / 2 - 50);
+
+    textSize(25);
+    text("Press SPACE to Start", width / 2, height / 2 + 20);
 }
 
-// Basic collision detection function
+// Game over screen
+function displayGameOverScreen() {
+    background(0);
+    fill("red");
+    textAlign(CENTER);
+    textSize(50);
+    text("GAME OVER", width / 2, height / 2);
+
+    fill("white");
+    textSize(25);
+    text("Refresh to Restart", width / 2, height / 2 + 50);
+}
+
+// ================= GAME OVER =================
+function gameOver() {
+    gameState = "gameover";
+}
+
+// ================= COLLISION FUNCTION =================
 function collideRectRect(x1, y1, w1, h1, x2, y2, w2, h2) {
-    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+    return x1 < x2 + w2 &&
+           x1 + w1 > x2 &&
+           y1 < y2 + h2 &&
+           y1 + h1 > y2;
 }

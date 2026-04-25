@@ -1,28 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Character encoding for proper text display -->
     <meta charset="UTF-8">
+
+    <!-- Makes the game responsive on different screen sizes -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title shown in the browser tab -->
     <title>Galaxy Attack: Alien Shooter</title>
 
     <style>
+        /* Remove default margins and prevent scrolling */
         body {
             margin: 0;
             overflow: hidden;
+
+            /* Set background image for the game page */
             background: url('images/canvas.webp') no-repeat center center fixed;
             background-size: cover;
         }
     </style>
 
-    <!-- Load p5.js Library -->
+    <!-- Load the main p5.js library for graphics and interaction -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 
-    <!-- Load p5.sound.js Library -->
+    <!-- Load p5 sound library for audio effects (shooting, etc.) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
     
-    <!-- Load Game Script -->
+    <!-- Load the main game script where all game logic is written -->
     <script src="game.js"></script>
 </head>
+
 <body>
+    <!-- Canvas is automatically created by p5.js -->
 </body>
 </html>
